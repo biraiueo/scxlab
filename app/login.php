@@ -16,17 +16,19 @@ class Profile {
 }
 
 if ($_POST) {
-    $u = $_POST['username'];
-    $p = $_POST['password'];
+    $u = $_POST['username'] ?? '';
+    $p = $_POST['password'] ?? '';
 
-    $sql = "SELECT * FROM users WHERE username='$u' AND password='$p'";
-    $res = $GLOBALS['PDO']->query($sql);
-    if ($row = $res->fetch()) {
+    $stmt = $GLOBALS['PDO']->prepare("SELECT * FROM users WHERE username = :u LIMIT 1");
+    $stmt->execute([':u' => $u]);
+    $row = $stmt->fetch();
+
+    if ($row && password_verify($p, $row['password'])) {
         $_SESSION['user'] = $row['username'];
         $_SESSION['role'] = $row['role'];
 
         $pObj = new Profile($row['username'], $row['role'] === 'admin');
-        setcookie('profile', serialize($pObj));
+        $_SESSION['profile'] = $pObj;
 
         header("Location: dashboard.php");
         exit;
@@ -39,8 +41,8 @@ if ($_POST) {
 <h2>Login</h2>
 <?php if (!empty($error)) echo "<p style='color:red'>$error</p>"; ?>
 <form method="post">
-  <label>Username <input name="username"></label>
-  <label>Password <input type="password" name="password"></label>
+  <label>Username <input name="username" required></label>
+  <label>Password <input type="password" name="password" required></label>
   <button type="submit">Login</button>
 </form>
 <?php include '_footer.php'; ?>

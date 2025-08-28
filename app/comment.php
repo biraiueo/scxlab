@@ -2,8 +2,8 @@
 <?php include '_header.php'; ?>
 <h2>Post comments</h2>
 <form method="post">
-  <input name="author" placeholder="Name...">
-  <textarea name="content" placeholder="Comments..."></textarea>
+  <input name="author" placeholder="Name..." required>
+  <textarea name="content" placeholder="Comments..." required></textarea>
   <button>Post</button>
 </form>
 
@@ -16,7 +16,12 @@ if ($_POST) {
 <h3>Comment lists : </h3>
 <?php
 foreach ($GLOBALS['PDO']->query("SELECT * FROM comments ORDER BY id DESC") as $row) {
-    echo "<p><b>{$row['author']}</b>: {$row['content']}</p>";
+    // lakukan output encoding agar aman dari XSS
+    $author = htmlspecialchars($row['author'], ENT_QUOTES, 'UTF-8');
+    $content = htmlspecialchars($row['content'], ENT_QUOTES, 'UTF-8');
+    echo "<p><b>{$author}</b>: {$content}</p>";
 }
 ?>
 <?php include '_footer.php'; ?>
+
+

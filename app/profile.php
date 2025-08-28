@@ -10,17 +10,19 @@ class Profile {
     }
 }
 
-if (!isset($_COOKIE['profile'])) {
-    die("Profile cookie tidak ditemukan. Silakan login ulang.");
+if (!isset($_SESSION['user']) || !isset($_SESSION['role'])) {
+    die("Session tidak ditemukan. Silakan login ulang.");
 }
 
-$profile = unserialize($_COOKIE['profile']); 
+$profile = new Profile($_SESSION['user'], $_SESSION['role'] === 'admin');
 
-// jika admin, boleh hapus user lain
 if ($profile->isAdmin && isset($_POST['delete_user'])) {
     $target = $_POST['delete_user'];
-    $GLOBALS['PDO']->exec("DELETE FROM users WHERE username='$target'");
-    $msg = "<p style='color:green'>User <b>$target</b> berhasil dihapus!</p>";
+
+    $stmt = $GLOBALS['PDO']->prepare("DELETE FROM users WHERE username = ?");
+    $stmt->execute([$target]);
+
+    $msg = "<p style='color:green'>User <b>" . htmlspecialchars($target, ENT_QUOTES, 'UTF-8') . "</b> berhasil dihapus!</p>";
 }
 
 include '_header.php';
@@ -37,7 +39,9 @@ include '_header.php';
         $users = $GLOBALS['PDO']->query("SELECT username FROM users");
         foreach ($users as $u) {
             if ($u['username'] !== $profile->username) {
-                echo "<option value='{$u['username']}'>{$u['username']}</option>";
+                // escape untuk mencegah XSS
+                $uname = htmlspecialchars($u['username'], ENT_QUOTES, 'UTF-8');
+                echo "<option value='{$uname}'>{$uname}</option>";
             }
         }
         ?>
@@ -51,3 +55,4 @@ include '_header.php';
 <?php endif; ?>
 
 <?php include '_footer.php'; ?>
+
