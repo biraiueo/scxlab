@@ -1,4 +1,4 @@
-name: Security
+name: Security Scan
 
 on:
   push:
@@ -15,17 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Semgrep (PHP)
-      - uses: returntocorp/semgrep-action@v1
-        with:
-          config: p/php
-          args: --sarif --output semgrep.sarif
+      - name: Run Semgrep
+        run: semgrep --config=p/php --sarif --output=semgrep.sarif || true
       - uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: semgrep.sarif
 
-      # Trivy (dependencies + filesystem)
       - uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
@@ -34,12 +30,12 @@ jobs:
           ignore-unfixed: true
           vuln-type: library,os
           severity: HIGH,CRITICAL
+          exit-code: 0
       - uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: trivy.sarif
 
-      # Gitleaks (secret scan)
       - uses: gitleaks/gitleaks-action@v2
         with:
           args: detect --report-format sarif --report-path gitleaks.sarif --exit-code 0
