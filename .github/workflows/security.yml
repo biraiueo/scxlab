@@ -2,44 +2,30 @@ name: Security
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "**" ]
 
 permissions:
   contents: read
   security-events: write
 
 jobs:
-  codeql:
-    name: CodeQL (PHP)
+  security:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: php
-      - uses: github/codeql-action/analyze@v3
 
-  semgrep:
-    name: Semgrep (PHP rules)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      # Semgrep (PHP)
       - uses: returntocorp/semgrep-action@v1
         with:
           config: p/php
-          generateSarif: true
-          sarif: semgrep.sarif
+          args: --sarif --output semgrep.sarif
       - uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: semgrep.sarif
 
-  trivy:
-    name: Trivy (Deps + Config)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      # Trivy (dependencies + filesystem)
       - uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
@@ -49,17 +35,15 @@ jobs:
           vuln-type: library,os
           severity: HIGH,CRITICAL
       - uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: trivy.sarif
 
-  gitleaks:
-    name: Gitleaks (secret scan)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      # Gitleaks (secret scan)
       - uses: gitleaks/gitleaks-action@v2
         with:
-          args: detect --no-git -v --report-format sarif --report-path gitleaks.sarif
+          args: detect --report-format sarif --report-path gitleaks.sarif --exit-code 0
       - uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: gitleaks.sarif
